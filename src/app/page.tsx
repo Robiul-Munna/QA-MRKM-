@@ -1,10 +1,11 @@
 
 
 
+
 "use client";
 import { useState, FormEvent, ChangeEvent } from "react";
 
-
+export default function Home() {
   const [requirements, setRequirements] = useState("");
   const [testCases, setTestCases] = useState<string[]>([]);
   const [file, setFile] = useState<File | null>(null);
