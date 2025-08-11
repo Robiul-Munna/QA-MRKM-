@@ -8,9 +8,9 @@ app.use(cors({
     // Allow requests with no origin (like mobile apps, curl, etc.)
     if (!origin) return callback(null, true);
     const allowed = [
-      'https://qa-mrkm.vercel.app',
-      'https://qa-mrkm-robiul-munnas-projects.vercel.app',
-      'https://6250d66fc8f7.ngrok-free.app'
+    'https://qa-mrkm.vercel.app',
+    'https://qa-mrkm-robiul-munnas-projects.vercel.app',
+    'https://f04a62f7f0ae.ngrok-free.app'
     ];
     if (allowed.includes(origin)) {
       return callback(null, true);
