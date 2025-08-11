@@ -14,6 +14,7 @@ export default function Home() {
   const [automationUrl, setAutomationUrl] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [automationResult, setAutomationResult] = useState("");
+  const [customSteps, setCustomSteps] = useState("");
 
   // Simulate AI test case generation
   const handleRequirements = async (e: FormEvent<HTMLFormElement>) => {
@@ -53,10 +54,10 @@ export default function Home() {
     setLoading(true);
     setAutomationResult("");
     try {
-      const res = await fetch("https://51bda00a2a0d.ngrok.io/run-playwright", {
+      const res = await fetch("https://ee4ee5ade712.ngrok.io/run-playwright", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: automationUrl, searchTerm }),
+        body: JSON.stringify({ url: automationUrl, searchTerm, customSteps }),
       });
       const data = await res.json();
       setAutomationResult(data.result);
@@ -139,6 +140,12 @@ export default function Home() {
           placeholder="Enter search term (optional)"
           value={searchTerm}
           onChange={e => setSearchTerm(e.target.value)}
+        />
+        <textarea
+          className="border rounded px-3 py-2 min-h-[60px]"
+          placeholder="Custom steps (e.g. type [selector] [text], click [selector], wait 1000, screenshot)"
+          value={customSteps}
+          onChange={e => setCustomSteps(e.target.value)}
         />
         <button type="submit" className="bg-purple-600 text-white rounded px-4 py-2 hover:bg-purple-700 disabled:opacity-50" disabled={loading}>
           Run Automation
