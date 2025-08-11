@@ -1,8 +1,57 @@
+  // Visual Regression Baseline Dashboard
+  const [baselines, setBaselines] = useState<{ testName: string; imageBase64: string }[]>([]);
+  const [baselineLoading, setBaselineLoading] = useState(false);
+  const fetchBaselines = async () => {
+    setBaselineLoading(true);
+    try {
+      const res = await fetch("/api/visual-regression/baselines");
+      const data = await res.json();
+      setBaselines(data.baselines || []);
+    } catch {
+      setBaselines([]);
+    }
+    setBaselineLoading(false);
+  };
+  const handleDeleteBaseline = async (testName: string) => {
+    if (!window.confirm(`Delete baseline for ${testName}?`)) return;
+    await fetch("/api/visual-regression/baselines", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ testName })
+    });
+    fetchBaselines();
+  };
+  // Fetch on mount
+  React.useEffect(() => { fetchBaselines(); }, []);
+      {/* Visual Regression Baseline Dashboard */}
+      <div className="w-full max-w-2xl bg-white rounded-lg shadow p-6 mb-6">
+        <div className="flex items-center justify-between mb-2">
+          <strong>Visual Regression Baselines</strong>
+          <button onClick={fetchBaselines} className="text-xs bg-gray-200 px-2 py-1 rounded hover:bg-gray-300">Refresh</button>
+        </div>
+        {baselineLoading ? (
+          <div>Loading baselines...</div>
+        ) : baselines.length === 0 ? (
+          <div className="text-gray-500">No baselines found.</div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            {baselines.map(b => (
+              <div key={b.testName} className="border rounded p-2 flex flex-col items-center">
+                <div className="text-xs font-mono break-all mb-1">{b.testName}</div>
+                <img src={`data:image/png;base64,${b.imageBase64}`} alt={b.testName} className="w-full h-24 object-contain border mb-2" />
+                <button onClick={() => handleDeleteBaseline(b.testName)} className="text-xs bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600">Delete Baseline</button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
   // Plain English Test Authoring state
   const [plainEnglishSteps, setPlainEnglishSteps] = useState("");
   const [generatedPlaywright, setGeneratedPlaywright] = useState("");
   const [plainGenLoading, setPlainGenLoading] = useState(false);
   const [plainRunResult, setPlainRunResult] = useState("");
+  const [plainVisualResult, setPlainVisualResult] = useState<string | null>(null);
+  const [plainVisualDiff, setPlainVisualDiff] = useState<string | null>(null);
 
   // Handler: Generate Playwright code from plain English
   const handleGeneratePlaywrightFromEnglish = async () => {
@@ -28,16 +77,24 @@
   const handleRunGeneratedPlaywright = async () => {
     if (!generatedPlaywright.trim()) return;
     setPlainRunResult("Running...");
+    setPlainVisualResult(null);
+    setPlainVisualDiff(null);
     try {
-      const res = await fetch("/api/run-playwright-code", {
+      // Prompt for test name (or use timestamp)
+      const testName = `plain-english-test-${Date.now()}`;
+      const res = await fetch("/api/run-playwright-code/route-visual", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code: generatedPlaywright })
+        body: JSON.stringify({ code: generatedPlaywright, testName })
       });
       const data = await res.json();
       setPlainRunResult(data.result || data.error || "No result.");
+      setPlainVisualResult(data.visualResult || null);
+      setPlainVisualDiff(data.diff || null);
     } catch (err) {
       setPlainRunResult("Error: Could not run code.");
+      setPlainVisualResult(null);
+      setPlainVisualDiff(null);
     }
   };
       {/* Plain English Test Authoring */}
@@ -74,11 +131,27 @@
           <div className="bg-gray-50 rounded p-3 mt-2 text-sm">
             <strong>Test Result:</strong>
             <div className="mt-1 whitespace-pre-line">{plainRunResult}</div>
+            {plainVisualResult && (
+              <div className="mt-2">
+                <strong>Visual Regression:</strong> {plainVisualResult}
+              </div>
+            )}
+            {plainVisualDiff && (
+              <div className="mt-2">
+                <strong>Visual Diff Image:</strong>
+                <img
+                  src={`data:image/png;base64,${plainVisualDiff}`}
+                  alt="Visual Diff"
+                  className="mt-2 border rounded max-w-full"
+                />
+              </div>
+            )}
           </div>
         )}
       </div>
+
 "use client";
-import { useState, FormEvent, ChangeEvent } from "react";
+import React, { useState, FormEvent, ChangeEvent } from "react";
 
 
 export default function Home() {
