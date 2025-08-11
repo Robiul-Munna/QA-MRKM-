@@ -41,6 +41,7 @@ export default function Home() {
   const [automationResult, setAutomationResult] = useState("");
   const [customSteps, setCustomSteps] = useState("");
 
+
   // Simulate AI test case generation
   const handleRequirements = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -56,6 +57,35 @@ export default function Home() {
       setTestCases(cases);
       setLoading(false);
     }, 1200);
+  };
+
+  // AI Generate & Run Automation handler
+  const handleAIGenerateAndRun = async () => {
+    if (!requirements.trim()) return;
+    setLoading(true);
+    setAutomationResult("");
+    try {
+      // 1. Generate Playwright steps from requirements
+      const genRes = await fetch("/api/generate-playwright", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ requirements })
+      });
+      const genData = await genRes.json();
+      if (!genData.steps) throw new Error(genData.error || "No steps generated");
+      // 2. Run Playwright automation with generated steps
+      const runRes = await fetch("https://f04a62f7f0ae.ngrok-free.app/run-playwright", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ customSteps: genData.steps })
+      });
+      const runData = await runRes.json();
+      setAutomationResult(runData.result || runData.error || "No result");
+    } catch (err) {
+      const errorMsg = (err instanceof Error) ? err.message : "Could not complete automation.";
+      setAutomationResult("Error: " + errorMsg);
+    }
+    setLoading(false);
   };
 
   // Simulate code upload and QA
@@ -97,6 +127,7 @@ export default function Home() {
       <h1 className="text-3xl font-bold mb-6 text-center">AI QA Engineer for Mount Sinai Health System</h1>
 
       {/* 1. Submit requirements/user stories */}
+
       <form onSubmit={handleRequirements} className="w-full max-w-md bg-white rounded-lg shadow p-6 mb-6 flex flex-col gap-4">
         <label className="font-semibold">Submit Requirements or User Stories</label>
         <textarea
@@ -106,9 +137,14 @@ export default function Home() {
           onChange={e => setRequirements(e.target.value)}
           required
         />
-        <button type="submit" className="bg-blue-600 text-white rounded px-4 py-2 hover:bg-blue-700 disabled:opacity-50" disabled={loading}>
-          Generate Test Cases
-        </button>
+        <div className="flex gap-2">
+          <button type="submit" className="bg-blue-600 text-white rounded px-4 py-2 hover:bg-blue-700 disabled:opacity-50" disabled={loading}>
+            Generate Test Cases
+          </button>
+          <button type="button" className="bg-purple-600 text-white rounded px-4 py-2 hover:bg-purple-700 disabled:opacity-50" disabled={loading} onClick={handleAIGenerateAndRun}>
+            AI Generate & Run Automation
+          </button>
+        </div>
       </form>
 
       {/* 2. Show generated test cases */}
