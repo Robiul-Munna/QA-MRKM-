@@ -10,7 +10,7 @@ app.use(cors({
     const allowed = [
       'https://qa-mrkm.vercel.app',
       'https://qa-mrkm-robiul-munnas-projects.vercel.app',
-      'https://d4a945cd7277.ngrok-free.app'
+      'https://6250d66fc8f7.ngrok-free.app'
     ];
     if (allowed.includes(origin)) {
       return callback(null, true);
