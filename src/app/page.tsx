@@ -54,7 +54,7 @@ export default function Home() {
     setLoading(true);
     setAutomationResult("");
     try {
-      const res = await fetch("https://ee8d561d868e.ngrok.io/run-playwright", {
+      const res = await fetch("https://d4a945cd7277.ngrok-free.app/run-playwright", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url: automationUrl, searchTerm, customSteps }),
