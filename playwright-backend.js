@@ -5,18 +5,21 @@ const { chromium } = require('playwright');
 const app = express();
 app.use(cors({
   origin: function(origin, callback) {
-    // Allow requests with no origin (like mobile apps, curl, etc.)
-    if (!origin) return callback(null, true);
-    const allowed = [
-    'https://qa-mrkm.vercel.app',
-    'https://qa-mrkm-robiul-munnas-projects.vercel.app',
-    'https://f04a62f7f0ae.ngrok-free.app'
-    ];
-    if (allowed.includes(origin)) {
-      return callback(null, true);
-    } else {
-      return callback(new Error('Not allowed by CORS'));
-    }
+    console.log('CORS request from origin:', origin);
+    // TEMP: Allow all origins for debugging
+    return callback(null, true);
+    // Uncomment below for strict CORS after debugging:
+    // if (!origin) return callback(null, true);
+    // const allowed = [
+    //   'https://qa-mrkm.vercel.app',
+    //   'https://qa-mrkm-robiul-munnas-projects.vercel.app',
+    //   'https://f04a62f7f0ae.ngrok-free.app'
+    // ];
+    // if (allowed.includes(origin)) {
+    //   return callback(null, true);
+    // } else {
+    //   return callback(new Error('Not allowed by CORS'));
+    // }
   },
   credentials: true
 }));

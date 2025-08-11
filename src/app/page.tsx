@@ -6,6 +6,31 @@
 import { useState, FormEvent, ChangeEvent } from "react";
 
 export default function Home() {
+  // Chatbot state
+  const [chatInput, setChatInput] = useState("");
+  const [chatHistory, setChatHistory] = useState<{ role: string; content: string }[]>([]);
+  const [chatLoading, setChatLoading] = useState(false);
+
+  // Handle chat submit
+  const handleChat = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!chatInput.trim()) return;
+    setChatLoading(true);
+    setChatHistory(prev => [...prev, { role: "user", content: chatInput }]);
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: chatInput })
+      });
+      const data = await res.json();
+      setChatHistory(prev => [...prev, { role: "assistant", content: data.reply }]);
+    } catch (err) {
+      setChatHistory(prev => [...prev, { role: "assistant", content: "Error: Could not get response." }]);
+    }
+    setChatInput("");
+    setChatLoading(false);
+  };
   const [requirements, setRequirements] = useState("");
   const [testCases, setTestCases] = useState<string[]>([]);
   const [file, setFile] = useState<File | null>(null);
@@ -164,6 +189,33 @@ export default function Home() {
           <div className="bg-white rounded-lg shadow p-6 text-lg font-semibold">AI is working...</div>
         </div>
       )}
+
+      {/* 6. Chatbot UI */}
+      <div className="w-full max-w-md bg-white rounded-lg shadow p-6 mt-6">
+        <strong>Chat with AI (ChatGPT)</strong>
+        <div className="h-48 overflow-y-auto border rounded p-2 my-2 bg-gray-50 text-sm">
+          {chatHistory.length === 0 && <div className="text-gray-400">Start the conversation...</div>}
+          {chatHistory.map((msg, i) => (
+            <div key={i} className={msg.role === "user" ? "text-right" : "text-left text-blue-700"}>
+              <span className="font-semibold">{msg.role === "user" ? "You" : "AI"}:</span> {msg.content}
+            </div>
+          ))}
+        </div>
+        <form onSubmit={handleChat} className="flex gap-2">
+          <input
+            type="text"
+            className="flex-1 border rounded px-3 py-2"
+            placeholder="Ask anything..."
+            value={chatInput}
+            onChange={e => setChatInput(e.target.value)}
+            disabled={chatLoading}
+            required
+          />
+          <button type="submit" className="bg-gray-800 text-white rounded px-4 py-2 hover:bg-gray-900 disabled:opacity-50" disabled={chatLoading || !chatInput.trim()}>
+            {chatLoading ? "..." : "Send"}
+          </button>
+        </form>
+      </div>
     </div>
   );
 }
