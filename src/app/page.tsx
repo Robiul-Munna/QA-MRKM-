@@ -16,6 +16,8 @@ export default function Home() {
   const [searchTerm, setSearchTerm] = useState("");
   const [automationResult, setAutomationResult] = useState("");
   const [automationScreenshot, setAutomationScreenshot] = useState<string | null>(null);
+  const [automationStatus, setAutomationStatus] = useState<string>("");
+  const [automationLogs, setAutomationLogs] = useState<string[]>([]);
   const [customSteps, setCustomSteps] = useState("");
   const [analysisResult, setAnalysisResult] = useState("");
   const [testPlan, setTestPlan] = useState("");
@@ -123,8 +125,11 @@ export default function Home() {
     setLoading(true);
     setAutomationResult("");
     setAutomationScreenshot(null);
+    setAutomationStatus("Running...");
+    setAutomationLogs([]);
     try {
       // 1. Generate Playwright steps from requirements
+      setAutomationStatus("Generating Playwright steps...");
       const genRes = await fetch("/api/generate-playwright", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -132,7 +137,9 @@ export default function Home() {
       });
       const genData = await genRes.json();
       if (!genData.steps) throw new Error(genData.error || "No steps generated");
+      setAutomationLogs(logs => [...logs, "Steps generated:", genData.steps]);
       // 2. Run Playwright automation with generated steps
+      setAutomationStatus("Running Playwright automation...");
       const runRes = await fetch("https://f04a62f7f0ae.ngrok-free.app/run-playwright", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -140,12 +147,15 @@ export default function Home() {
       });
       const runData = await runRes.json();
       setAutomationResult(runData.result || runData.error || "No result");
+      if (runData.logs) setAutomationLogs(logs => [...logs, ...runData.logs]);
       if (runData.screenshotBase64) {
         setAutomationScreenshot(runData.screenshotBase64);
       }
+      setAutomationStatus("Completed");
     } catch (err) {
       const errorMsg = (err instanceof Error) ? err.message : "Could not complete automation.";
       setAutomationResult("Error: " + errorMsg);
+      setAutomationStatus("Error");
     }
     setLoading(false);
   };
@@ -240,6 +250,23 @@ export default function Home() {
         <div className="w-full max-w-md bg-white rounded-lg shadow p-6 mb-6">
           <strong>AI-Generated Test Data:</strong>
           <div className="mt-2 whitespace-pre-line">{testData}</div>
+          <button
+            type="button"
+            className="mt-4 bg-blue-500 text-white rounded px-4 py-2 hover:bg-blue-600"
+            onClick={() => {
+              const blob = new Blob([testData], { type: 'text/plain' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = 'test-data.txt';
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+              URL.revokeObjectURL(url);
+            }}
+          >
+            Download Test Data
+          </button>
         </div>
       )}
       </form>
@@ -310,9 +337,22 @@ export default function Home() {
         </button>
       </form>
 
-      {(automationResult || automationScreenshot) && (
+      {(automationResult || automationScreenshot || automationStatus || automationLogs.length > 0) && (
         <div className="w-full max-w-md bg-white rounded-lg shadow p-6 text-gray-800">
           <strong>Automation Result:</strong>
+          {automationStatus && (
+            <div className="mt-2 text-sm text-blue-700 font-semibold">Status: {automationStatus}</div>
+          )}
+          {automationLogs.length > 0 && (
+            <div className="mt-2 text-xs bg-gray-100 rounded p-2 max-h-32 overflow-y-auto">
+              <strong>Logs:</strong>
+              <ul className="list-disc pl-4">
+                {automationLogs.map((log, idx) => (
+                  <li key={idx}>{log}</li>
+                ))}
+              </ul>
+            </div>
+          )}
           <div className="mt-2 whitespace-pre-line">{automationResult}</div>
           {automationScreenshot && (
             <div className="mt-4">
@@ -322,6 +362,20 @@ export default function Home() {
                 alt="Automation Screenshot"
                 className="mt-2 border rounded max-w-full"
               />
+              <button
+                type="button"
+                className="mt-2 bg-blue-500 text-white rounded px-4 py-2 hover:bg-blue-600"
+                onClick={() => {
+                  const link = document.createElement('a');
+                  link.href = `data:image/png;base64,${automationScreenshot}`;
+                  link.download = 'automation-screenshot.png';
+                  document.body.appendChild(link);
+                  link.click();
+                  document.body.removeChild(link);
+                }}
+              >
+                Download Screenshot
+              </button>
             </div>
           )}
           <div className="mt-6 flex gap-2">
@@ -330,6 +384,18 @@ export default function Home() {
             </button>
             <button type="button" className="bg-green-600 text-white rounded px-4 py-2 opacity-60 cursor-not-allowed" title="TestRail integration available. Configure API to enable." disabled>
               Push Result to TestRail
+            </button>
+            <button
+              type="button"
+              className="bg-gray-400 text-white rounded px-4 py-2 hover:bg-gray-500"
+              onClick={() => {
+                setAutomationResult("");
+                setAutomationScreenshot(null);
+                setAutomationStatus("");
+                setAutomationLogs([]);
+              }}
+            >
+              Clear Results
             </button>
           </div>
         </div>
