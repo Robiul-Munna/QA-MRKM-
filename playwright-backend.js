@@ -4,7 +4,10 @@ const { chromium } = require('playwright');
 
 const app = express();
 app.use(cors({
-  origin: 'https://qa-mrkm.vercel.app'
+  origin: [
+    'https://qa-mrkm.vercel.app',
+    'https://ee4ee5ade712.ngrok.io' // Add your current ngrok URL here
+  ]
 }));
 app.use(express.json());
 
