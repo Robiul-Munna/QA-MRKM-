@@ -1,7 +1,8 @@
+
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(req: NextRequest) {
-  const { url, steps } = await req.json();
+  const { url } = await req.json();
   // Dynamically import Playwright only on the server
   const { chromium } = await import('playwright');
   let result = '';
@@ -14,8 +15,12 @@ export async function POST(req: NextRequest) {
     // Add more automation logic here based on 'steps'
     await browser.close();
     result += 'Automation complete.';
-  } catch (e: any) {
-    result = 'Error: ' + e.message;
+  } catch (e: unknown) {
+    if (e instanceof Error) {
+      result = 'Error: ' + e.message;
+    } else {
+      result = 'Unknown error occurred.';
+    }
   }
   return NextResponse.json({ result });
 }
