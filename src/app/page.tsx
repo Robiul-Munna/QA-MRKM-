@@ -131,21 +131,87 @@
           <div className="bg-gray-50 rounded p-3 mt-2 text-sm">
             <strong>Test Result:</strong>
             <div className="mt-1 whitespace-pre-line">{plainRunResult}</div>
-            {plainVisualResult && (
-              <div className="mt-2">
-                <strong>Visual Regression:</strong> {plainVisualResult}
-              </div>
-            )}
-            {plainVisualDiff && (
-              <div className="mt-2">
-                <strong>Visual Diff Image:</strong>
-                <img
-                  src={`data:image/png;base64,${plainVisualDiff}`}
-                  alt="Visual Diff"
-                  className="mt-2 border rounded max-w-full"
-                />
-              </div>
-            )}
+
+            function VisualReview({ testName, diffBase64, commentBox }) {
+              const [show, setShow] = React.useState('diff');
+              const [baselineImg, setBaselineImg] = React.useState(null);
+              const [newImg, setNewImg] = React.useState(null);
+              const [comment, setComment] = React.useState('');
+              const [status, setStatus] = React.useState('Pending');
+              const [history, setHistory] = React.useState([]);
+
+              React.useEffect(function() {
+                fetch(`/api/visual-regression/baselines`).then(function(r){return r.json();}).then(function(data){
+                  var found = data.baselines.find(function(b){return b.testName===testName;});
+                  if (found) setBaselineImg(found.imageBase64);
+                });
+                setNewImg(diffBase64);
+              }, [testName, diffBase64]);
+
+              async function handleApprove() {
+                await fetch("/api/visual-regression", {
+                  method: "PUT",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ testName: testName, screenshotBase64: newImg })
+                });
+                setStatus('Approved');
+                setHistory(function(h){ return [{status:'Approved',comment:comment,date:(new Date()).toLocaleString()}].concat(h); });
+                alert("Baseline updated. Future runs will compare to this image.");
+              }
+              function handleReject() {
+                setStatus('Rejected');
+                setHistory(function(h){ return [{status:'Rejected',comment:comment,date:(new Date()).toLocaleString()}].concat(h); });
+                alert("Change rejected. Please investigate the difference.");
+              }
+
+              return (
+                <div className="mt-2 border rounded p-2">
+                  <div className="flex gap-2 mb-2">
+                    <button className={`px-2 py-1 rounded ${show==='diff'?'bg-blue-600 text-white':'bg-gray-200'}`} onClick={function(){setShow('diff')}}>Diff</button>
+                    <button className={`px-2 py-1 rounded ${show==='baseline'?'bg-blue-600 text-white':'bg-gray-200'}`} onClick={function(){setShow('baseline')}}>Baseline</button>
+                    <button className={`px-2 py-1 rounded ${show==='new'?'bg-blue-600 text-white':'bg-gray-200'}`} onClick={function(){setShow('new')}}>New Screenshot</button>
+                    <span className={`ml-auto px-2 py-1 rounded text-xs ${status==='Pending'?'bg-yellow-200 text-yellow-800':status==='Approved'?'bg-green-200 text-green-800':'bg-red-200 text-red-800'}`}>{status}</span>
+                  </div>
+                  <div className="flex gap-4 items-center">
+                    {show==='diff' && <img src={`data:image/png;base64,${diffBase64}`} alt="Diff" className="w-48 border" />}
+                    {show==='baseline' && baselineImg && <img src={`data:image/png;base64,${baselineImg}`} alt="Baseline" className="w-48 border" />}
+                    {show==='new' && newImg && <img src={`data:image/png;base64,${newImg}`} alt="New Screenshot" className="w-48 border" />}
+                  </div>
+                  {commentBox && (
+                    <div className="mt-2">
+                      <textarea className="border rounded w-full p-1 text-xs" placeholder="Leave a review comment..." value={comment} onChange={function(e){setComment(e.target.value)}} />
+                    </div>
+                  )}
+                  <div className="flex gap-2 mt-2">
+                    <button className="bg-green-600 text-white px-3 py-1 rounded" onClick={handleApprove} disabled={status==='Approved'}>Approve as Baseline</button>
+                    <button className="bg-red-600 text-white px-3 py-1 rounded" onClick={handleReject} disabled={status==='Rejected'}>Reject</button>
+                  </div>
+                  {history.length > 0 && (
+                    <div className="mt-2 text-xs bg-gray-50 rounded p-2">
+                      <strong>Review History:</strong>
+                      <ul>
+                        {history.map(function(h,i){return (<li key={i}>{h.date}: <span className={h.status==='Approved'?'text-green-700':'text-red-700'}>{h.status}</span> {h.comment && `- ${h.comment}`}</li>);})}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              );
+            }
+      <div className="flex gap-2 mt-2">
+        <button className="bg-green-600 text-white px-3 py-1 rounded" onClick={handleApprove} disabled={status==='Approved'}>Approve as Baseline</button>
+        <button className="bg-red-600 text-white px-3 py-1 rounded" onClick={handleReject} disabled={status==='Rejected'}>Reject</button>
+      </div>
+      {history.length > 0 && (
+        <div className="mt-2 text-xs bg-gray-50 rounded p-2">
+          <strong>Review History:</strong>
+          <ul>
+            {history.map((h,i)=>(<li key={i}>{h.date}: <span className={h.status==='Approved'?'text-green-700':'text-red-700'}>{h.status}</span> {h.comment && `- ${h.comment}`}</li>))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
           </div>
         )}
       </div>
@@ -193,6 +259,9 @@ export default function Home() {
       setAnalysisResult("Error: Could not analyze requirements.");
     }
     setLoading(false);
+  
+  // Place this at the very end of the file, after the Home export
+  
   };
 
   // Test Plan Generation handler
@@ -201,72 +270,73 @@ export default function Home() {
     setLoading(true);
     setTestPlan("");
     try {
-      const res = await fetch("/api/generate-test-plan", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ requirements })
-      });
-      const data = await res.json();
-      setTestPlan(data.testPlan || data.error || "No test plan generated.");
-    } catch (err) {
-      setTestPlan("Error: Could not generate test plan.");
-    }
-    setLoading(false);
-  };
 
-  // Test Data Generation handler
-  const handleGenerateTestData = async () => {
-    if (!requirements.trim() && testCases.length === 0) return;
-    setLoading(true);
-    setTestData("");
-    try {
-      const res = await fetch("/api/generate-test-data", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ requirements, testCases: testCases.join("\n"), maskSensitive: testDataMask })
-      });
-      const data = await res.json();
-      setTestData(data.testData || data.error || "No test data generated.");
-    } catch (err) {
-      setTestData("Error: Could not generate test data.");
-    }
-    setLoading(false);
-  };
+// Advanced Visual Review Component (must be top-level, not nested)
+function VisualReview({ testName, diffBase64, commentBox }) {
+  const [show, setShow] = React.useState('diff');
+  const [baselineImg, setBaselineImg] = React.useState(null);
+  const [newImg, setNewImg] = React.useState(null);
+  const [comment, setComment] = React.useState('');
+  const [status, setStatus] = React.useState('Pending');
+  const [history, setHistory] = React.useState([]);
 
-  // Handle chat submit
-  const handleChat = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!chatInput.trim()) return;
-    setChatLoading(true);
-    setChatHistory(prev => [...prev, { role: "user", content: chatInput }]);
-    try {
-      const res = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: chatInput })
-      });
-      const data = await res.json();
-      setChatHistory(prev => [...prev, { role: "assistant", content: data.reply }]);
-    } catch (err) {
-      setChatHistory(prev => [...prev, { role: "assistant", content: "Error: Could not get response." }]);
-    }
-    setChatInput("");
-    setChatLoading(false);
-  };
+  React.useEffect(function() {
+    fetch(`/api/visual-regression/baselines`).then(function(r){return r.json();}).then(function(data){
+      var found = data.baselines.find(function(b){return b.testName===testName;});
+      if (found) setBaselineImg(found.imageBase64);
+    });
+    setNewImg(diffBase64);
+  }, [testName, diffBase64]);
 
-  // Simulate AI test case generation
-  const handleRequirements = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setLoading(true);
-    setTestCases([]);
-    setQaReport("");
-    setTimeout(() => {
-      // Simple mock: split requirements into test cases
-      const cases = requirements
-        .split("\n")
-        .filter((line: string) => line.trim())
-        .map((line: string, i: number) => `Test Case ${i + 1}: Validate "${line.trim()}"`);
-      setTestCases(cases);
+  async function handleApprove() {
+    await fetch("/api/visual-regression", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ testName: testName, screenshotBase64: newImg })
+    });
+    setStatus('Approved');
+    setHistory(function(h){ return [{status:'Approved',comment:comment,date:(new Date()).toLocaleString()}].concat(h); });
+    alert("Baseline updated. Future runs will compare to this image.");
+  }
+  function handleReject() {
+    setStatus('Rejected');
+    setHistory(function(h){ return [{status:'Rejected',comment:comment,date:(new Date()).toLocaleString()}].concat(h); });
+    alert("Change rejected. Please investigate the difference.");
+  }
+
+  return (
+    <div className="mt-2 border rounded p-2">
+      <div className="flex gap-2 mb-2">
+        <button className={`px-2 py-1 rounded ${show==='diff'?'bg-blue-600 text-white':'bg-gray-200'}`} onClick={function(){setShow('diff')}}>Diff</button>
+        <button className={`px-2 py-1 rounded ${show==='baseline'?'bg-blue-600 text-white':'bg-gray-200'}`} onClick={function(){setShow('baseline')}}>Baseline</button>
+        <button className={`px-2 py-1 rounded ${show==='new'?'bg-blue-600 text-white':'bg-gray-200'}`} onClick={function(){setShow('new')}}>New Screenshot</button>
+        <span className={`ml-auto px-2 py-1 rounded text-xs ${status==='Pending'?'bg-yellow-200 text-yellow-800':status==='Approved'?'bg-green-200 text-green-800':'bg-red-200 text-red-800'}`}>{status}</span>
+      </div>
+      <div className="flex gap-4 items-center">
+        {show==='diff' && <img src={`data:image/png;base64,${diffBase64}`} alt="Diff" className="w-48 border" />}
+        {show==='baseline' && baselineImg && <img src={`data:image/png;base64,${baselineImg}`} alt="Baseline" className="w-48 border" />}
+        {show==='new' && newImg && <img src={`data:image/png;base64,${newImg}`} alt="New Screenshot" className="w-48 border" />}
+      </div>
+      {commentBox && (
+        <div className="mt-2">
+          <textarea className="border rounded w-full p-1 text-xs" placeholder="Leave a review comment..." value={comment} onChange={function(e){setComment(e.target.value)}} />
+        </div>
+      )}
+      <div className="flex gap-2 mt-2">
+        <button className="bg-green-600 text-white px-3 py-1 rounded" onClick={handleApprove} disabled={status==='Approved'}>Approve as Baseline</button>
+        <button className="bg-red-600 text-white px-3 py-1 rounded" onClick={handleReject} disabled={status==='Rejected'}>Reject</button>
+      </div>
+      {history.length > 0 && (
+        <div className="mt-2 text-xs bg-gray-50 rounded p-2">
+          <strong>Review History:</strong>
+          <ul>
+            {history.map(function(h,i){return (<li key={i}>{h.date}: <span className={h.status==='Approved'?'text-green-700':'text-red-700'}>{h.status}</span> {h.comment && `- ${h.comment}`}</li>);})}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
       setLoading(false);
     }, 1200);
   };
