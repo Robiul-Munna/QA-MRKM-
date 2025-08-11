@@ -1,15 +1,83 @@
-
-
-
-
 "use client";
 import { useState, FormEvent, ChangeEvent } from "react";
+
 
 export default function Home() {
   // Chatbot state
   const [chatInput, setChatInput] = useState("");
   const [chatHistory, setChatHistory] = useState<{ role: string; content: string }[]>([]);
   const [chatLoading, setChatLoading] = useState(false);
+  const [requirements, setRequirements] = useState("");
+  const [testCases, setTestCases] = useState<string[]>([]);
+  const [file, setFile] = useState<File | null>(null);
+  const [qaReport, setQaReport] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [automationUrl, setAutomationUrl] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [automationResult, setAutomationResult] = useState("");
+  const [automationScreenshot, setAutomationScreenshot] = useState<string | null>(null);
+  const [customSteps, setCustomSteps] = useState("");
+  const [analysisResult, setAnalysisResult] = useState("");
+  const [testPlan, setTestPlan] = useState("");
+  const [testData, setTestData] = useState("");
+  const [testDataMask, setTestDataMask] = useState(false);
+
+  // Requirement Analysis handler
+  const handleAnalyzeRequirements = async () => {
+    if (!requirements.trim()) return;
+    setLoading(true);
+    setAnalysisResult("");
+    try {
+      const res = await fetch("/api/analyze-requirements", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ requirements })
+      });
+      const data = await res.json();
+      setAnalysisResult(data.analysis || data.error || "No analysis result.");
+    } catch (err) {
+      setAnalysisResult("Error: Could not analyze requirements.");
+    }
+    setLoading(false);
+  };
+
+  // Test Plan Generation handler
+  const handleGenerateTestPlan = async () => {
+    if (!requirements.trim()) return;
+    setLoading(true);
+    setTestPlan("");
+    try {
+      const res = await fetch("/api/generate-test-plan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ requirements })
+      });
+      const data = await res.json();
+      setTestPlan(data.testPlan || data.error || "No test plan generated.");
+    } catch (err) {
+      setTestPlan("Error: Could not generate test plan.");
+    }
+    setLoading(false);
+  };
+
+  // Test Data Generation handler
+  const handleGenerateTestData = async () => {
+    if (!requirements.trim() && testCases.length === 0) return;
+    setLoading(true);
+    setTestData("");
+    try {
+      const res = await fetch("/api/generate-test-data", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ requirements, testCases: testCases.join("\n"), maskSensitive: testDataMask })
+      });
+      const data = await res.json();
+      setTestData(data.testData || data.error || "No test data generated.");
+    } catch (err) {
+      setTestData("Error: Could not generate test data.");
+    }
+    setLoading(false);
+  };
 
   // Handle chat submit
   const handleChat = async (e: FormEvent<HTMLFormElement>) => {
@@ -31,17 +99,6 @@ export default function Home() {
     setChatInput("");
     setChatLoading(false);
   };
-  const [requirements, setRequirements] = useState("");
-  const [testCases, setTestCases] = useState<string[]>([]);
-  const [file, setFile] = useState<File | null>(null);
-  const [qaReport, setQaReport] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [automationUrl, setAutomationUrl] = useState("");
-  const [searchTerm, setSearchTerm] = useState("");
-  const [automationResult, setAutomationResult] = useState("");
-  const [automationScreenshot, setAutomationScreenshot] = useState<string | null>(null);
-  const [customSteps, setCustomSteps] = useState("");
-
 
   // Simulate AI test case generation
   const handleRequirements = async (e: FormEvent<HTMLFormElement>) => {
@@ -142,14 +199,49 @@ export default function Home() {
           onChange={e => setRequirements(e.target.value)}
           required
         />
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <button type="submit" className="bg-blue-600 text-white rounded px-4 py-2 hover:bg-blue-700 disabled:opacity-50" disabled={loading}>
             Generate Test Cases
           </button>
           <button type="button" className="bg-purple-600 text-white rounded px-4 py-2 hover:bg-purple-700 disabled:opacity-50" disabled={loading} onClick={handleAIGenerateAndRun}>
             AI Generate & Run Automation
           </button>
+          <button type="button" className="bg-orange-500 text-white rounded px-4 py-2 hover:bg-orange-600 disabled:opacity-50" disabled={loading} onClick={handleAnalyzeRequirements}>
+            Analyze Requirements
+          </button>
+          <button type="button" className="bg-cyan-600 text-white rounded px-4 py-2 hover:bg-cyan-700 disabled:opacity-50" disabled={loading} onClick={handleGenerateTestPlan}>
+            Generate Test Plan
+          </button>
+          <button type="button" className="bg-teal-700 text-white rounded px-4 py-2 hover:bg-teal-800 disabled:opacity-50" disabled={loading} onClick={handleGenerateTestData}>
+            Generate Test Data
+          </button>
+          <label className="flex items-center gap-1 text-xs text-gray-600">
+            <input type="checkbox" checked={testDataMask} onChange={e => setTestDataMask(e.target.checked)} /> Mask sensitive
+          </label>
         </div>
+      {/* Requirement Analysis Result */}
+      {analysisResult && (
+        <div className="w-full max-w-md bg-white rounded-lg shadow p-6 mb-6">
+          <strong>Requirement Analysis:</strong>
+          <div className="mt-2 whitespace-pre-line">{analysisResult}</div>
+        </div>
+      )}
+
+      {/* Test Plan Result */}
+      {testPlan && (
+        <div className="w-full max-w-md bg-white rounded-lg shadow p-6 mb-6">
+          <strong>AI-Generated Test Plan:</strong>
+          <div className="mt-2 whitespace-pre-line">{testPlan}</div>
+        </div>
+      )}
+
+      {/* Test Data Result */}
+      {testData && (
+        <div className="w-full max-w-md bg-white rounded-lg shadow p-6 mb-6">
+          <strong>AI-Generated Test Data:</strong>
+          <div className="mt-2 whitespace-pre-line">{testData}</div>
+        </div>
+      )}
       </form>
 
       {/* 2. Show generated test cases */}
