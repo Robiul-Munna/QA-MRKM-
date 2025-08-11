@@ -192,7 +192,7 @@ export default function Home() {
 
       {/* 6. Chatbot UI */}
       <div className="w-full max-w-md bg-white rounded-lg shadow p-6 mt-6">
-        <strong>Chat with AI (ChatGPT)</strong>
+        <strong>Chat With Robiul Munna's Assistant</strong>
         <div className="h-48 overflow-y-auto border rounded p-2 my-2 bg-gray-50 text-sm">
           {chatHistory.length === 0 && <div className="text-gray-400">Start the conversation...</div>}
           {chatHistory.map((msg, i) => (
