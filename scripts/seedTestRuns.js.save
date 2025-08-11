@@ -1,0 +1,30 @@
+const { PrismaClient } = require('../src/generated/prisma');
+const prisma = new PrismaClient();
+
+async function main() {
+  await prisma.testRun.createMany({
+    data: [
+      { status: 'passed', bugCount: 0, coverage: 95 },
+      { status: 'failed', bugCount: 2, coverage: 80 },
+      { status: 'passed', bugCount: 0, coverage: 90 },
+      { status: 'failed', bugCount: 1, coverage: 85 },
+      { status: 'passed', bugCount: 0, coverage: 98 },
+    ],
+  });
+  console.log('Sample test runs inserted!');
+}
+
+main()
+  .catch(e => {
+    console.error(e);
+    process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+  });
+node scripts/seedTestRuns.js
+git add .
+git commit -m "chore: add all new features, dashboard, and seed script"
+git push
+
+

@@ -9,9 +9,14 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@prisma/client": "^6.13.0",
+    "@types/next-auth": "^3.13.0",
     "cors": "^2.8.5",
     "express": "^5.1.0",
+    "mysql2": "^2.3.3",
     "next": "15.4.6",
+    "next-auth": "^4.24.11",
+    "prisma": "^6.13.0",
     "react": "19.1.0",
     "react-dom": "19.1.0"
   },

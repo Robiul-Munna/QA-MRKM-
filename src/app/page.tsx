@@ -1,30 +1,99 @@
-  // Visual Regression Baseline Dashboard
-  const [baselines, setBaselines] = useState<{ testName: string; imageBase64: string }[]>([]);
-  const [baselineLoading, setBaselineLoading] = useState(false);
-  const fetchBaselines = async () => {
-    setBaselineLoading(true);
+  // Handle requirements form submission (generate test cases)
+  const handleRequirements = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!requirements.trim()) return;
+    setLoading(true);
+    setTestCases([]);
     try {
-      const res = await fetch("/api/visual-regression/baselines");
+      const res = await fetch("/api/generate-test-plan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ requirements })
+      });
       const data = await res.json();
-      setBaselines(data.baselines || []);
+      setTestCases(data.testCases || []);
     } catch {
-      setBaselines([]);
+      setTestCases([]);
     }
-    setBaselineLoading(false);
+    setLoading(false);
   };
-  const handleDeleteBaseline = async (testName: string) => {
-    if (!window.confirm(`Delete baseline for ${testName}?`)) return;
-    await fetch("/api/visual-regression/baselines", {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ testName })
-    });
-    fetchBaselines();
+
+  // Handle test data generation (stub)
+  const handleGenerateTestData = async () => {
+    setLoading(true);
+    setTestData("");
+    try {
+      const res = await fetch("/api/generate-test-data", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ requirements, mask: testDataMask })
+      });
+      const data = await res.json();
+      setTestData(data.testData || "");
+    } catch {
+      setTestData("");
+    }
+    setLoading(false);
   };
-  // Fetch on mount
-  React.useEffect(() => { fetchBaselines(); }, []);
-      {/* Visual Regression Baseline Dashboard */}
-      <div className="w-full max-w-2xl bg-white rounded-lg shadow p-6 mb-6">
+
+  // Handle chatbot (stub)
+  const handleChat = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!chatInput.trim()) return;
+    setChatLoading(true);
+    setChatHistory(h => [...h, { role: "user", content: chatInput }]);
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: chatInput })
+      });
+      const data = await res.json();
+      setChatHistory(h => [...h, { role: "assistant", content: data.reply || data.error || "No reply." }]);
+    } catch {
+      setChatHistory(h => [...h, { role: "assistant", content: "Error: Could not get reply." }]);
+    }
+    setChatInput("");
+    setChatLoading(false);
+  };
+  // Test Run History & Filtering state
+  const [testRuns, setTestRuns] = useState([]);
+  const [runLoading, setRunLoading] = useState(false);
+  const [filterStatus, setFilterStatus] = useState("");
+  const [filterTestName, setFilterTestName] = useState("");
+  const [filterDateFrom, setFilterDateFrom] = useState("");
+  const [filterDateTo, setFilterDateTo] = useState("");
+
+  const fetchTestRuns = async () => {
+    setRunLoading(true);
+    const params = new URLSearchParams();
+    if (filterStatus) params.append("status", filterStatus);
+    if (filterTestName) params.append("testName", filterTestName);
+    if (filterDateFrom) params.append("dateFrom", filterDateFrom);
+    if (filterDateTo) params.append("dateTo", filterDateTo);
+    try {
+      const res = await fetch(`/api/test-run-history?${params.toString()}`);
+      const data = await res.json();
+      setTestRuns(data.testRuns || []);
+    } catch {
+      setTestRuns([]);
+    }
+    setRunLoading(false);
+  };
+  React.useEffect(() => { fetchTestRuns(); }, []);
+
+  // ...existing code...
+
+  // Place this inside the main return of Home, after the opening <div>:
+  // {/* Test Run History & Filtering Dashboard */}
+
+  // ...existing code...
+  // ...existing code...
+
+  // Place this inside the main return of Home, after the test run history dashboard:
+  // {/* Visual Regression Baseline Dashboard */}
+
+  // ...existing code...
         <div className="flex items-center justify-between mb-2">
           <strong>Visual Regression Baselines</strong>
           <button onClick={fetchBaselines} className="text-xs bg-gray-200 px-2 py-1 rounded hover:bg-gray-300">Refresh</button>
@@ -132,71 +201,6 @@
             <strong>Test Result:</strong>
             <div className="mt-1 whitespace-pre-line">{plainRunResult}</div>
 
-            function VisualReview({ testName, diffBase64, commentBox }) {
-              const [show, setShow] = React.useState('diff');
-              const [baselineImg, setBaselineImg] = React.useState(null);
-              const [newImg, setNewImg] = React.useState(null);
-              const [comment, setComment] = React.useState('');
-              const [status, setStatus] = React.useState('Pending');
-              const [history, setHistory] = React.useState([]);
-
-              React.useEffect(function() {
-                fetch(`/api/visual-regression/baselines`).then(function(r){return r.json();}).then(function(data){
-                  var found = data.baselines.find(function(b){return b.testName===testName;});
-                  if (found) setBaselineImg(found.imageBase64);
-                });
-                setNewImg(diffBase64);
-              }, [testName, diffBase64]);
-
-              async function handleApprove() {
-                await fetch("/api/visual-regression", {
-                  method: "PUT",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ testName: testName, screenshotBase64: newImg })
-                });
-                setStatus('Approved');
-                setHistory(function(h){ return [{status:'Approved',comment:comment,date:(new Date()).toLocaleString()}].concat(h); });
-                alert("Baseline updated. Future runs will compare to this image.");
-              }
-              function handleReject() {
-                setStatus('Rejected');
-                setHistory(function(h){ return [{status:'Rejected',comment:comment,date:(new Date()).toLocaleString()}].concat(h); });
-                alert("Change rejected. Please investigate the difference.");
-              }
-
-              return (
-                <div className="mt-2 border rounded p-2">
-                  <div className="flex gap-2 mb-2">
-                    <button className={`px-2 py-1 rounded ${show==='diff'?'bg-blue-600 text-white':'bg-gray-200'}`} onClick={function(){setShow('diff')}}>Diff</button>
-                    <button className={`px-2 py-1 rounded ${show==='baseline'?'bg-blue-600 text-white':'bg-gray-200'}`} onClick={function(){setShow('baseline')}}>Baseline</button>
-                    <button className={`px-2 py-1 rounded ${show==='new'?'bg-blue-600 text-white':'bg-gray-200'}`} onClick={function(){setShow('new')}}>New Screenshot</button>
-                    <span className={`ml-auto px-2 py-1 rounded text-xs ${status==='Pending'?'bg-yellow-200 text-yellow-800':status==='Approved'?'bg-green-200 text-green-800':'bg-red-200 text-red-800'}`}>{status}</span>
-                  </div>
-                  <div className="flex gap-4 items-center">
-                    {show==='diff' && <img src={`data:image/png;base64,${diffBase64}`} alt="Diff" className="w-48 border" />}
-                    {show==='baseline' && baselineImg && <img src={`data:image/png;base64,${baselineImg}`} alt="Baseline" className="w-48 border" />}
-                    {show==='new' && newImg && <img src={`data:image/png;base64,${newImg}`} alt="New Screenshot" className="w-48 border" />}
-                  </div>
-                  {commentBox && (
-                    <div className="mt-2">
-                      <textarea className="border rounded w-full p-1 text-xs" placeholder="Leave a review comment..." value={comment} onChange={function(e){setComment(e.target.value)}} />
-                    </div>
-                  )}
-                  <div className="flex gap-2 mt-2">
-                    <button className="bg-green-600 text-white px-3 py-1 rounded" onClick={handleApprove} disabled={status==='Approved'}>Approve as Baseline</button>
-                    <button className="bg-red-600 text-white px-3 py-1 rounded" onClick={handleReject} disabled={status==='Rejected'}>Reject</button>
-                  </div>
-                  {history.length > 0 && (
-                    <div className="mt-2 text-xs bg-gray-50 rounded p-2">
-                      <strong>Review History:</strong>
-                      <ul>
-                        {history.map(function(h,i){return (<li key={i}>{h.date}: <span className={h.status==='Approved'?'text-green-700':'text-red-700'}>{h.status}</span> {h.comment && `- ${h.comment}`}</li>);})}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-              );
-            }
       <div className="flex gap-2 mt-2">
         <button className="bg-green-600 text-white px-3 py-1 rounded" onClick={handleApprove} disabled={status==='Approved'}>Approve as Baseline</button>
         <button className="bg-red-600 text-white px-3 py-1 rounded" onClick={handleReject} disabled={status==='Rejected'}>Reject</button>
@@ -221,73 +225,141 @@ import React, { useState, FormEvent, ChangeEvent } from "react";
 
 
 export default function Home() {
-  // Chatbot state
-  const [chatInput, setChatInput] = useState("");
-  const [chatHistory, setChatHistory] = useState<{ role: string; content: string }[]>([]);
-  const [chatLoading, setChatLoading] = useState(false);
-  const [requirements, setRequirements] = useState("");
-  const [testCases, setTestCases] = useState<string[]>([]);
-  const [file, setFile] = useState<File | null>(null);
-  const [qaReport, setQaReport] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [automationUrl, setAutomationUrl] = useState("");
-  const [searchTerm, setSearchTerm] = useState("");
-  const [automationResult, setAutomationResult] = useState("");
-  const [automationScreenshot, setAutomationScreenshot] = useState<string | null>(null);
-  const [automationStatus, setAutomationStatus] = useState<string>("");
-  const [automationLogs, setAutomationLogs] = useState<string[]>([]);
-  const [customSteps, setCustomSteps] = useState("");
-  const [analysisResult, setAnalysisResult] = useState("");
-  const [testPlan, setTestPlan] = useState("");
-  const [testData, setTestData] = useState("");
-  const [testDataMask, setTestDataMask] = useState(false);
+  // ...existing code...
 
-  // Requirement Analysis handler
-  const handleAnalyzeRequirements = async () => {
-    if (!requirements.trim()) return;
-    setLoading(true);
-    setAnalysisResult("");
+  // Move all dashboard state/hooks to the top of Home
+  const [testRuns, setTestRuns] = useState<any[]>([]);
+  const [runLoading, setRunLoading] = useState(false);
+  const [filterStatus, setFilterStatus] = useState("");
+  const [filterTestName, setFilterTestName] = useState("");
+  const [filterDateFrom, setFilterDateFrom] = useState("");
+  const [filterDateTo, setFilterDateTo] = useState("");
+  const fetchTestRuns = async () => {
+    setRunLoading(true);
+    const params = new URLSearchParams();
+    if (filterStatus) params.append("status", filterStatus);
+    if (filterTestName) params.append("testName", filterTestName);
+    if (filterDateFrom) params.append("dateFrom", filterDateFrom);
+    if (filterDateTo) params.append("dateTo", filterDateTo);
     try {
-      const res = await fetch("/api/analyze-requirements", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ requirements })
-      });
+      const res = await fetch(`/api/test-run-history?${params.toString()}`);
       const data = await res.json();
-      setAnalysisResult(data.analysis || data.error || "No analysis result.");
-    } catch (err) {
-      setAnalysisResult("Error: Could not analyze requirements.");
+      setTestRuns(data.testRuns || []);
+    } catch {
+      setTestRuns([]);
     }
-    setLoading(false);
-  
-  // Place this at the very end of the file, after the Home export
-  
+    setRunLoading(false);
   };
+  React.useEffect(() => { fetchTestRuns(); }, []);
 
-  // Test Plan Generation handler
-  const handleGenerateTestPlan = async () => {
-    if (!requirements.trim()) return;
-    setLoading(true);
-    setTestPlan("");
+  // Visual Regression Baseline Dashboard state/hooks
+  const [baselines, setBaselines] = useState<{ testName: string; imageBase64: string }[]>([]);
+  const [baselineLoading, setBaselineLoading] = useState(false);
+  const fetchBaselines = async () => {
+    setBaselineLoading(true);
     try {
-
-// Advanced Visual Review Component (must be top-level, not nested)
-function VisualReview({ testName, diffBase64, commentBox }) {
-  const [show, setShow] = React.useState('diff');
-  const [baselineImg, setBaselineImg] = React.useState(null);
-  const [newImg, setNewImg] = React.useState(null);
-  const [comment, setComment] = React.useState('');
-  const [status, setStatus] = React.useState('Pending');
-  const [history, setHistory] = React.useState([]);
-
-  React.useEffect(function() {
-    fetch(`/api/visual-regression/baselines`).then(function(r){return r.json();}).then(function(data){
-      var found = data.baselines.find(function(b){return b.testName===testName;});
-      if (found) setBaselineImg(found.imageBase64);
+      const res = await fetch("/api/visual-regression/baselines");
+      const data = await res.json();
+      setBaselines(data.baselines || []);
+    } catch {
+      setBaselines([]);
+    }
+    setBaselineLoading(false);
+  };
+  const handleDeleteBaseline = async (testName: string) => {
+    if (!window.confirm(`Delete baseline for ${testName}?`)) return;
+    await fetch("/api/visual-regression/baselines", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ testName })
     });
-    setNewImg(diffBase64);
-  }, [testName, diffBase64]);
+    fetchBaselines();
+  };
+  React.useEffect(() => { fetchBaselines(); }, []);
 
+  // ...existing code...
+
+  // --- Place all dashboard JSX inside the main return of Home ---
+  // (1) Test Run History & Filtering Dashboard
+  // (2) Visual Regression Baseline Dashboard
+
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-6">
+      {/* Test Run History & Filtering Dashboard */}
+      <div className="w-full max-w-4xl bg-white rounded-lg shadow p-6 mb-6">
+        <div className="flex flex-wrap items-end gap-4 mb-4">
+          <strong className="text-lg">Test Run History</strong>
+          <select className="border rounded px-2 py-1" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
+            <option value="">All Statuses</option>
+            <option value="passed">Passed</option>
+            <option value="failed">Failed</option>
+            <option value="visual-diff">Visual Diff</option>
+          </select>
+          <input type="text" className="border rounded px-2 py-1" placeholder="Test Name" value={filterTestName} onChange={e => setFilterTestName(e.target.value)} />
+          <input type="date" className="border rounded px-2 py-1" value={filterDateFrom} onChange={e => setFilterDateFrom(e.target.value)} />
+          <input type="date" className="border rounded px-2 py-1" value={filterDateTo} onChange={e => setFilterDateTo(e.target.value)} />
+          <button className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700" onClick={fetchTestRuns}>Filter</button>
+          <button className="bg-gray-200 px-3 py-1 rounded hover:bg-gray-300" onClick={() => { setFilterStatus(""); setFilterTestName(""); setFilterDateFrom(""); setFilterDateTo(""); fetchTestRuns(); }}>Clear</button>
+        </div>
+        {runLoading ? (
+          <div>Loading test runs...</div>
+        ) : testRuns.length === 0 ? (
+          <div className="text-gray-500">No test runs found.</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-xs border">
+              <thead>
+                <tr className="bg-gray-100">
+                  <th className="px-2 py-1 border">Date</th>
+                  <th className="px-2 py-1 border">Test Name</th>
+                  <th className="px-2 py-1 border">Status</th>
+                  <th className="px-2 py-1 border">Bugs</th>
+                  <th className="px-2 py-1 border">Coverage (%)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {testRuns.map((run, i) => (
+                  <tr key={run.id || i} className="border-b">
+                    <td className="px-2 py-1 border">{run.executedAt ? new Date(run.executedAt).toLocaleString() : "-"}</td>
+                    <td className="px-2 py-1 border font-mono">{run.testName || "-"}</td>
+                    <td className="px-2 py-1 border">
+                      <span className={`px-2 py-1 rounded text-xs ${run.status === 'passed' ? 'bg-green-100 text-green-800' : run.status === 'failed' ? 'bg-red-100 text-red-800' : run.status === 'visual-diff' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800'}`}>{run.status}</span>
+                    </td>
+                    <td className="px-2 py-1 border text-center">{run.bugCount}</td>
+                    <td className="px-2 py-1 border text-center">{run.coverage}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Visual Regression Baseline Dashboard */}
+      <div className="w-full max-w-2xl bg-white rounded-lg shadow p-6 mb-6">
+        <div className="flex items-center justify-between mb-2">
+          <strong>Visual Regression Baselines</strong>
+          <button onClick={fetchBaselines} className="text-xs bg-gray-200 px-2 py-1 rounded hover:bg-gray-300">Refresh</button>
+        </div>
+        {baselineLoading ? (
+          <div>Loading baselines...</div>
+        ) : baselines.length === 0 ? (
+          <div className="text-gray-500">No baselines found.</div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            {baselines.map(b => (
+              <div key={b.testName} className="border rounded p-2 flex flex-col items-center">
+                <div className="text-xs font-mono break-all mb-1">{b.testName}</div>
+                <img src={`data:image/png;base64,${b.imageBase64}`} alt={b.testName} className="w-full h-24 object-contain border mb-2" />
+                <button onClick={() => handleDeleteBaseline(b.testName)} className="text-xs bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600">Delete Baseline</button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+      {/* ...existing code for the rest of the dashboard... */}
+    </div>
+  );
   async function handleApprove() {
     await fetch("/api/visual-regression", {
       method: "PUT",
