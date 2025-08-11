@@ -1,3 +1,82 @@
+  // Plain English Test Authoring state
+  const [plainEnglishSteps, setPlainEnglishSteps] = useState("");
+  const [generatedPlaywright, setGeneratedPlaywright] = useState("");
+  const [plainGenLoading, setPlainGenLoading] = useState(false);
+  const [plainRunResult, setPlainRunResult] = useState("");
+
+  // Handler: Generate Playwright code from plain English
+  const handleGeneratePlaywrightFromEnglish = async () => {
+    if (!plainEnglishSteps.trim()) return;
+    setPlainGenLoading(true);
+    setGeneratedPlaywright("");
+    setPlainRunResult("");
+    try {
+      const res = await fetch("/api/english-to-playwright", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ steps: plainEnglishSteps })
+      });
+      const data = await res.json();
+      setGeneratedPlaywright(data.code || data.error || "No code generated.");
+    } catch (err) {
+      setGeneratedPlaywright("Error: Could not generate code.");
+    }
+    setPlainGenLoading(false);
+  };
+
+  // Handler: Run generated Playwright code
+  const handleRunGeneratedPlaywright = async () => {
+    if (!generatedPlaywright.trim()) return;
+    setPlainRunResult("Running...");
+    try {
+      const res = await fetch("/api/run-playwright-code", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: generatedPlaywright })
+      });
+      const data = await res.json();
+      setPlainRunResult(data.result || data.error || "No result.");
+    } catch (err) {
+      setPlainRunResult("Error: Could not run code.");
+    }
+  };
+      {/* Plain English Test Authoring */}
+      <div className="w-full max-w-md bg-white rounded-lg shadow p-6 mb-6 flex flex-col gap-4">
+        <label className="font-semibold">Plain English Test Authoring</label>
+        <textarea
+          className="border rounded px-3 py-2 min-h-[60px]"
+          placeholder="Describe your test steps in plain English..."
+          value={plainEnglishSteps}
+          onChange={e => setPlainEnglishSteps(e.target.value)}
+        />
+        <button
+          type="button"
+          className="bg-indigo-600 text-white rounded px-4 py-2 hover:bg-indigo-700 disabled:opacity-50"
+          disabled={plainGenLoading || !plainEnglishSteps.trim()}
+          onClick={handleGeneratePlaywrightFromEnglish}
+        >
+          {plainGenLoading ? "Generating..." : "Generate Playwright Code"}
+        </button>
+        {generatedPlaywright && (
+          <div className="bg-gray-100 rounded p-3 mt-2">
+            <strong>Generated Playwright Code:</strong>
+            <pre className="whitespace-pre-wrap text-xs mt-2">{generatedPlaywright}</pre>
+            <button
+              type="button"
+              className="mt-2 bg-green-600 text-white rounded px-4 py-2 hover:bg-green-700"
+              onClick={handleRunGeneratedPlaywright}
+            >
+              Run This Test
+            </button>
+          </div>
+        )}
+        {plainRunResult && (
+          <div className="bg-gray-50 rounded p-3 mt-2 text-sm">
+            <strong>Test Result:</strong>
+            <div className="mt-1 whitespace-pre-line">{plainRunResult}</div>
+          </div>
+        )}
+      </div>
 "use client";
 import { useState, FormEvent, ChangeEvent } from "react";
 
