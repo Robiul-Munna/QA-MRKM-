@@ -39,6 +39,7 @@ export default function Home() {
   const [automationUrl, setAutomationUrl] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [automationResult, setAutomationResult] = useState("");
+  const [automationScreenshot, setAutomationScreenshot] = useState<string | null>(null);
   const [customSteps, setCustomSteps] = useState("");
 
 
@@ -64,6 +65,7 @@ export default function Home() {
     if (!requirements.trim()) return;
     setLoading(true);
     setAutomationResult("");
+    setAutomationScreenshot(null);
     try {
       // 1. Generate Playwright steps from requirements
       const genRes = await fetch("/api/generate-playwright", {
@@ -81,6 +83,9 @@ export default function Home() {
       });
       const runData = await runRes.json();
       setAutomationResult(runData.result || runData.error || "No result");
+      if (runData.screenshotBase64) {
+        setAutomationScreenshot(runData.screenshotBase64);
+      }
     } catch (err) {
       const errorMsg = (err instanceof Error) ? err.message : "Could not complete automation.";
       setAutomationResult("Error: " + errorMsg);
@@ -212,10 +217,29 @@ export default function Home() {
           Run Automation
         </button>
       </form>
-      {automationResult && (
+
+      {(automationResult || automationScreenshot) && (
         <div className="w-full max-w-md bg-white rounded-lg shadow p-6 text-gray-800">
           <strong>Automation Result:</strong>
           <div className="mt-2 whitespace-pre-line">{automationResult}</div>
+          {automationScreenshot && (
+            <div className="mt-4">
+              <strong>Screenshot:</strong>
+              <img
+                src={`data:image/png;base64,${automationScreenshot}`}
+                alt="Automation Screenshot"
+                className="mt-2 border rounded max-w-full"
+              />
+            </div>
+          )}
+          <div className="mt-6 flex gap-2">
+            <button type="button" className="bg-yellow-500 text-white rounded px-4 py-2 opacity-60 cursor-not-allowed" title="Jira integration available. Configure API to enable." disabled>
+              Log Bug to Jira
+            </button>
+            <button type="button" className="bg-green-600 text-white rounded px-4 py-2 opacity-60 cursor-not-allowed" title="TestRail integration available. Configure API to enable." disabled>
+              Push Result to TestRail
+            </button>
+          </div>
         </div>
       )}
 
