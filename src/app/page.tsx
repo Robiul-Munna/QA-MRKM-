@@ -55,9 +55,6 @@ export default function Home() {
       setTestRuns([]);
     }
     setRunLoading(false);
-    // Add missing handler stubs
-    const handleFile = (e: FormEvent<HTMLFormElement>) => { e.preventDefault(); };
-    const handleAutomation = (e: FormEvent<HTMLFormElement>) => { e.preventDefault(); };
   };
   React.useEffect(() => { fetchTestRuns(); }, []);
 
@@ -86,86 +83,9 @@ export default function Home() {
   };
   React.useEffect(() => { fetchBaselines(); }, []);
 
-  // ...existing code...
-
-  // --- Place all dashboard JSX inside the main return of Home ---
-  // (1) Test Run History & Filtering Dashboard
-  // (2) Visual Regression Baseline Dashboard
-
-  return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-6">
-      {/* Test Run History & Filtering Dashboard */}
-      <div className="w-full max-w-4xl bg-white rounded-lg shadow p-6 mb-6">
-        <div className="flex flex-wrap items-end gap-4 mb-4">
-          <strong className="text-lg">Test Run History</strong>
-          <select className="border rounded px-2 py-1" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
-            <option value="">All Statuses</option>
-            <option value="passed">Passed</option>
-            <option value="failed">Failed</option>
-            <option value="visual-diff">Visual Diff</option>
-          </select>
-          <input type="text" className="border rounded px-2 py-1" placeholder="Test Name" value={filterTestName} onChange={e => setFilterTestName(e.target.value)} />
-          <input type="date" className="border rounded px-2 py-1" value={filterDateFrom} onChange={e => setFilterDateFrom(e.target.value)} />
-          <input type="date" className="border rounded px-2 py-1" value={filterDateTo} onChange={e => setFilterDateTo(e.target.value)} />
-          <button className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700" onClick={fetchTestRuns}>Filter</button>
-          <button className="bg-gray-200 px-3 py-1 rounded hover:bg-gray-300" onClick={() => { setFilterStatus(""); setFilterTestName(""); setFilterDateFrom(""); setFilterDateTo(""); fetchTestRuns(); }}>Clear</button>
-        </div>
-        {runLoading ? (
-          <div>Loading test runs...</div>
-        ) : testRuns.length === 0 ? (
-          <div className="text-gray-500">No test runs found.</div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-xs border">
-              <thead>
-                <tr className="bg-gray-100">
-                  <th className="px-2 py-1 border">Date</th>
-                  <th className="px-2 py-1 border">Test Name</th>
-                  <th className="px-2 py-1 border">Status</th>
-                  <th className="px-2 py-1 border">Bugs</th>
-                  <th className="px-2 py-1 border">Coverage (%)</th>
-                </tr>
-              </thead>
-              <tbody>
-                {testRuns.map((run, i) => (
-                  <tr key={run.id || i} className="border-b">
-                    <td className="px-2 py-1 border">{run.executedAt ? new Date(run.executedAt).toLocaleString() : "-"}</td>
-                    <td className="px-2 py-1 border font-mono">{run.testName || "-"}</td>
-                    <td className="px-2 py-1 border">
-                      <span className={`px-2 py-1 rounded text-xs ${run.status === 'passed' ? 'bg-green-100 text-green-800' : run.status === 'failed' ? 'bg-red-100 text-red-800' : run.status === 'visual-diff' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800'}`}>{run.status}</span>
-                    </td>
-                    <td className="px-2 py-1 border text-center">{run.bugCount}</td>
-                    <td className="px-2 py-1 border text-center">{run.coverage}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-
-      {/* Visual Regression Baseline Dashboard */}
-      <div className="w-full max-w-2xl bg-white rounded-lg shadow p-6 mb-6">
-        <div className="flex items-center justify-between mb-2">
-          <strong>Visual Regression Baselines</strong>
-          <button onClick={fetchBaselines} className="text-xs bg-gray-200 px-2 py-1 rounded hover:bg-gray-300">Refresh</button>
-        </div>
-        {baselineLoading ? (
-          <div>Loading baselines...</div>
-        ) : baselines.length === 0 ? (
-          <div className="text-gray-500">No baselines found.</div>
-        ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            {baselines.map(b => (
-              <div key={b.testName} className="border rounded p-2 flex flex-col items-center">
-                <div className="text-xs font-mono break-all mb-1">{b.testName}</div>
-                <img src={`data:image/png;base64,${b.imageBase64}`} alt={b.testName} className="w-full h-24 object-contain border mb-2" />
-                <button onClick={() => handleDeleteBaseline(b.testName)} className="text-xs bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600">Delete Baseline</button>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+  // Handler stubs for file and automation forms
+  const handleFile = (e: FormEvent<HTMLFormElement>) => { e.preventDefault(); };
+  const handleAutomation = (e: FormEvent<HTMLFormElement>) => { e.preventDefault(); };
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-6">
