@@ -4,10 +4,20 @@ const { chromium } = require('playwright');
 
 const app = express();
 app.use(cors({
-  origin: [
-    'https://qa-mrkm.vercel.app',
-    'https://ee4ee5ade712.ngrok.io' // Add your current ngrok URL here
-  ]
+  origin: function(origin, callback) {
+    // Allow requests with no origin (like mobile apps, curl, etc.)
+    if (!origin) return callback(null, true);
+    const allowed = [
+      'https://qa-mrkm.vercel.app',
+      'https://ee4ee5ade712.ngrok.io'
+    ];
+    if (allowed.includes(origin)) {
+      return callback(null, true);
+    } else {
+      return callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true
 }));
 app.use(express.json());
 
