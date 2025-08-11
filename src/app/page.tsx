@@ -1,17 +1,20 @@
 
 
-"use client";
-import { useState } from "react";
 
-export default function Home() {
+"use client";
+import { useState, FormEvent, ChangeEvent } from "react";
+
+
   const [requirements, setRequirements] = useState("");
   const [testCases, setTestCases] = useState<string[]>([]);
   const [file, setFile] = useState<File | null>(null);
   const [qaReport, setQaReport] = useState("");
   const [loading, setLoading] = useState(false);
+  const [automationUrl, setAutomationUrl] = useState("");
+  const [automationResult, setAutomationResult] = useState("");
 
   // Simulate AI test case generation
-  const handleRequirements = async (e: React.FormEvent) => {
+  const handleRequirements = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
     setTestCases([]);
@@ -20,15 +23,15 @@ export default function Home() {
       // Simple mock: split requirements into test cases
       const cases = requirements
         .split("\n")
-        .filter(line => line.trim())
-        .map((line, i) => `Test Case ${i + 1}: Validate "${line.trim()}"`);
+        .filter((line: string) => line.trim())
+        .map((line: string, i: number) => `Test Case ${i + 1}: Validate "${line.trim()}"`);
       setTestCases(cases);
       setLoading(false);
     }, 1200);
   };
 
   // Simulate code upload and QA
-  const handleFile = async (e: React.FormEvent) => {
+  const handleFile = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!file) return;
     setLoading(true);
@@ -40,6 +43,25 @@ export default function Home() {
       );
       setLoading(false);
     }, 1500);
+  };
+
+  // Run Playwright automation via API
+  const handleAutomation = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setLoading(true);
+    setAutomationResult("");
+    try {
+      const res = await fetch("/api/run-playwright", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: automationUrl, steps: [] }),
+      });
+      const data = await res.json();
+      setAutomationResult(data.result);
+    } catch (err) {
+      setAutomationResult("Error running automation.");
+    }
+    setLoading(false);
   };
 
   return (
@@ -89,11 +111,34 @@ export default function Home() {
         </form>
       )}
 
+
       {/* 4. Show QA report */}
       {qaReport && (
         <div className="w-full max-w-md bg-white rounded-lg shadow p-6 text-gray-800">
           <strong>QA Report:</strong>
           <div className="mt-2 whitespace-pre-line">{qaReport}</div>
+        </div>
+      )}
+
+      {/* 5. Run website automation with Playwright */}
+      <form onSubmit={handleAutomation} className="w-full max-w-md bg-white rounded-lg shadow p-6 mb-6 flex flex-col gap-4">
+        <label className="font-semibold">Run Automated Website Test (Playwright)</label>
+        <input
+          type="url"
+          className="border rounded px-3 py-2"
+          placeholder="Enter website URL (e.g. https://www.mountsinai.org)"
+          value={automationUrl}
+          onChange={e => setAutomationUrl(e.target.value)}
+          required
+        />
+        <button type="submit" className="bg-purple-600 text-white rounded px-4 py-2 hover:bg-purple-700 disabled:opacity-50" disabled={loading}>
+          Run Automation
+        </button>
+      </form>
+      {automationResult && (
+        <div className="w-full max-w-md bg-white rounded-lg shadow p-6 text-gray-800">
+          <strong>Automation Result:</strong>
+          <div className="mt-2 whitespace-pre-line">{automationResult}</div>
         </div>
       )}
 
