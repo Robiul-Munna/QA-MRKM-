@@ -9,7 +9,7 @@ app.use(cors({
     if (!origin) return callback(null, true);
     const allowed = [
       'https://qa-mrkm.vercel.app',
-      'https://ee4ee5ade712.ngrok.io'
+      'https://ee8d561d868e.ngrok.io'
     ];
     if (allowed.includes(origin)) {
       return callback(null, true);
