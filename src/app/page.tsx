@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, FormEvent, ChangeEvent } from "react";
+import Image from "next/image";
 
 export default function Home() {
   const [showNote, setShowNote] = useState(true);
@@ -28,11 +29,13 @@ export default function Home() {
 
   // Handler stubs (no-ops or safe defaults)
     const handleRequirements = (e: FormEvent<HTMLFormElement>) => { e.preventDefault(); };
-    const handleAIGenerateAndRun = (): void => {};
-    const handleAnalyzeRequirements = (): void => {};
-    const handleGenerateTestPlan = (): void => {};
-    const handleGenerateTestData = (): void => {};
-    const handleChat = (e: FormEvent<HTMLFormElement>): void => { e.preventDefault(); };
+  // Only remove handlers not referenced in JSX
+  const handleChat = (e: FormEvent<HTMLFormElement>): void => { e.preventDefault(); };
+  // Restore required handler stubs for JSX buttons
+  const handleAIGenerateAndRun = (): void => {};
+  const handleAnalyzeRequirements = (): void => {};
+  const handleGenerateTestPlan = (): void => {};
+  const handleGenerateTestData = (): void => {};
   // ...all hooks, handlers, and logic should be here, before return...
   // ...existing code...
 
@@ -276,12 +279,14 @@ export default function Home() {
           {automationScreenshot && (
             <div className="mt-4">
               <strong>Screenshot:</strong>
-              <img
-                src={`data:image/png;base64,${automationScreenshot}`}
-                alt="Automation Screenshot"
-                className="mt-2 border rounded max-w-full"
-                // TODO: Replace with Next.js <Image /> if possible
-              />
+                {/* Use Next.js Image for lint compliance */}
+                <Image
+                  src={`data:image/png;base64,${automationScreenshot}`}
+                  alt="Automation Screenshot"
+                  width={400}
+                  height={300}
+                  style={{ marginTop: "0.5rem", borderRadius: "0.5rem", maxWidth: "100%", border: "1px solid #e5e7eb" }}
+                />
               <button
                 type="button"
                 className="mt-2 bg-blue-500 text-white rounded px-4 py-2 hover:bg-blue-600"
@@ -297,6 +302,7 @@ export default function Home() {
                 Download Screenshot
               </button>
             </div>
+import Image from "next/image";
           )}
           <div className="mt-6 flex gap-2">
             <button type="button" className="bg-yellow-500 text-white rounded px-4 py-2 opacity-60 cursor-not-allowed" title="Jira integration available. Configure API to enable." disabled>
