@@ -5,38 +5,39 @@ export default function Home() {
   const [showNote, setShowNote] = useState(true);
   const handleCloseNote = () => setShowNote(false);
   // --- MISSING STATE & HANDLERS FOR UI ---
-  const [requirements, setRequirements] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [testCases, setTestCases] = useState<string[]>([]);
-  const [analysisResult, setAnalysisResult] = useState("");
-  const [testPlan, setTestPlan] = useState("");
-  const [testData, setTestData] = useState("");
-  const [testDataMask, setTestDataMask] = useState(false);
-  const [qaReport, setQaReport] = useState("");
-  const [file, setFile] = useState<File | null>(null);
-  const [automationUrl, setAutomationUrl] = useState("");
-  const [searchTerm, setSearchTerm] = useState("");
-  const [customSteps, setCustomSteps] = useState("");
-  const [automationResult, setAutomationResult] = useState("");
-  const [automationScreenshot, setAutomationScreenshot] = useState<string | null>(null);
-  const [automationStatus, setAutomationStatus] = useState("");
-  const [automationLogs, setAutomationLogs] = useState<string[]>([]);
-  const [chatInput, setChatInput] = useState("");
-  const [chatHistory, setChatHistory] = useState<{ role: string; content: string }[]>([]);
-  const [chatLoading, setChatLoading] = useState(false);
+  // Only keep state/hooks that are actually used in the UI below
+    const [requirements, setRequirements] = useState<string>("");
+    const [loading, setLoading] = useState<boolean>(false);
+    const [testCases, setTestCases] = useState<string[]>([]);
+    const [analysisResult, setAnalysisResult] = useState<string>("");
+    const [testPlan, setTestPlan] = useState<string>("");
+    const [testData, setTestData] = useState<string>("");
+    const [testDataMask, setTestDataMask] = useState<boolean>(false);
+    const [qaReport, setQaReport] = useState<string>("");
+    const [file, setFile] = useState<File | null>(null);
+    const [automationUrl, setAutomationUrl] = useState<string>("");
+    const [searchTerm, setSearchTerm] = useState<string>("");
+    const [customSteps, setCustomSteps] = useState<string>("");
+    const [automationResult, setAutomationResult] = useState<string>("");
+    const [automationScreenshot, setAutomationScreenshot] = useState<string | null>(null);
+    const [automationStatus, setAutomationStatus] = useState<string>("");
+    const [automationLogs, setAutomationLogs] = useState<string[]>([]);
+    const [chatInput, setChatInput] = useState<string>("");
+    const [chatHistory, setChatHistory] = useState<{ role: string; content: string }[]>([]);
+    const [chatLoading, setChatLoading] = useState<boolean>(false);
 
   // Handler stubs (no-ops or safe defaults)
-  const handleRequirements = (e: FormEvent<HTMLFormElement>) => { e.preventDefault(); };
-  const handleAIGenerateAndRun = () => {};
-  const handleAnalyzeRequirements = () => {};
-  const handleGenerateTestPlan = () => {};
-  const handleGenerateTestData = () => {};
-  const handleChat = (e: FormEvent<HTMLFormElement>) => { e.preventDefault(); };
+    const handleRequirements = (e: FormEvent<HTMLFormElement>) => { e.preventDefault(); };
+    const handleAIGenerateAndRun = (): void => {};
+    const handleAnalyzeRequirements = (): void => {};
+    const handleGenerateTestPlan = (): void => {};
+    const handleGenerateTestData = (): void => {};
+    const handleChat = (e: FormEvent<HTMLFormElement>): void => { e.preventDefault(); };
   // ...all hooks, handlers, and logic should be here, before return...
   // ...existing code...
 
   // Move all dashboard state/hooks to the top of Home
-  const [testRuns, setTestRuns] = useState<any[]>([]);
+  const [testRuns, setTestRuns] = useState<{ id: string; status: string; testName: string; date: string }[]>([]);
   const [runLoading, setRunLoading] = useState(false);
   const [filterStatus, setFilterStatus] = useState("");
   const [filterTestName, setFilterTestName] = useState("");
@@ -90,18 +91,27 @@ export default function Home() {
   const handleAutomation = (e: FormEvent<HTMLFormElement>) => { e.preventDefault(); };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-6">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-50 to-purple-100 p-6">
       {showNote && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-          <div className="bg-white rounded-lg shadow-lg p-6 max-w-md w-full text-center relative">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full text-center relative animate-fade-in">
             <button
-              className="absolute top-2 right-2 text-gray-400 hover:text-gray-700 text-xl"
+              className="absolute top-3 right-3 text-gray-400 hover:text-purple-600 text-2xl transition-colors"
               onClick={handleCloseNote}
               aria-label="Close"
             >×</button>
-            <h2 className="text-lg font-semibold mb-2">Welcome!</h2>
-            <p className="mb-4">Feel free to explore and look around. If you have any suggestions, please leave a note and it would be greatly appreciated.</p>
-            <p className="text-sm text-gray-600">Mr. Raviul Munna is currently busy with another task. I’m his AI assistant, and if you work with me, I’ll do my best to help you get your task done.</p>
+            <div className="flex flex-col items-center gap-2">
+              <span className="inline-block bg-gradient-to-r from-blue-400 to-purple-500 text-white rounded-full px-4 py-1 text-sm font-bold mb-2 shadow">👋 Welcome!</span>
+              <h2 className="text-2xl font-extrabold mb-2 text-purple-700">AI QA Engineer Assistant</h2>
+              <p className="mb-3 text-gray-700">Hi! I'm your AI QA assistant for Mount Sinai Health System. Ask me anything, or explore the features below. If you have feedback, just let me know!</p>
+              <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 text-xs text-purple-700 mb-2">
+                <span className="font-semibold">Note:</span> Mr. Robiul Munna is currently busy. I'm here to help you get your QA tasks done quickly and efficiently.
+              </div>
+              <button
+                className="mt-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded px-5 py-2 font-semibold shadow hover:scale-105 transition-transform"
+                onClick={handleCloseNote}
+              >Let's Start!</button>
+            </div>
           </div>
         </div>
       )}
@@ -270,6 +280,7 @@ export default function Home() {
                 src={`data:image/png;base64,${automationScreenshot}`}
                 alt="Automation Screenshot"
                 className="mt-2 border rounded max-w-full"
+                // TODO: Replace with Next.js <Image /> if possible
               />
               <button
                 type="button"
