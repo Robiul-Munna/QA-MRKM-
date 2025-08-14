@@ -2,6 +2,8 @@
 import React, { useState, FormEvent, ChangeEvent } from "react";
 
 export default function Home() {
+  const [showNote, setShowNote] = useState(true);
+  const handleCloseNote = () => setShowNote(false);
   // --- MISSING STATE & HANDLERS FOR UI ---
   const [requirements, setRequirements] = useState("");
   const [loading, setLoading] = useState(false);
@@ -89,6 +91,20 @@ export default function Home() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-6">
+      {showNote && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+          <div className="bg-white rounded-lg shadow-lg p-6 max-w-md w-full text-center relative">
+            <button
+              className="absolute top-2 right-2 text-gray-400 hover:text-gray-700 text-xl"
+              onClick={handleCloseNote}
+              aria-label="Close"
+            >×</button>
+            <h2 className="text-lg font-semibold mb-2">Welcome!</h2>
+            <p className="mb-4">Feel free to explore and look around. If you have any suggestions, please leave a note and it would be greatly appreciated.</p>
+            <p className="text-sm text-gray-600">Mr. Raviul Munna is currently busy with another task. I’m his AI assistant, and if you work with me, I’ll do my best to help you get your task done.</p>
+          </div>
+        </div>
+      )}
       <h1 className="text-3xl font-bold mb-6 text-center">AI QA Engineer for Mount Sinai Health System</h1>
 
       {/* 1. Submit requirements/user stories */}
